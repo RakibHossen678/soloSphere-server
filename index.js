@@ -42,10 +42,17 @@ async function run() {
         res.send(result)
     })
 
-    app.get('/jobs/:id',async(req,res)=>{
+    app.get('/job/:id',async(req,res)=>{
       const id=req.params.id
       const query={_id : new ObjectId(id)}
       const result=await jobsCollection.findOne(query)
+      res.send(result)
+    })
+
+    //save bid data id in DB
+    app.post('/bid',async(req,res)=>{
+      const bidData=req.body
+      const result=await bidsCollection.insertOne(bidData)
       res.send(result)
     })
 
