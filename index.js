@@ -55,6 +55,22 @@ async function run() {
       const result=await bidsCollection.insertOne(bidData)
       res.send(result)
     })
+    //save job data id in DB
+    app.post('/job',async(req,res)=>{
+      const JobData=req.body
+      const result=await jobsCollection.insertOne(JobData)
+      res.send(result)
+    })
+
+    //get all jobs posted by a specific user
+    app.get('/jobs/:email',async(req,res)=>{
+      const email=req.params.email
+      const query={'buyer.email' : email}
+      const result=await jobsCollection.find(query).toArray()
+      res.send(result)
+    })
+
+
 
 
 
