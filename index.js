@@ -16,6 +16,24 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(cookieParser());
 
+const verifyToken = (req, res, next) => {
+  const token = req?.cookies?.token;
+  if (!token) {
+    return res.status(401).send({ message: "unauthorized access" });
+  }
+  if (token) {
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+      if (err) {
+        console.log(err);
+        return res.status(401).send({ message: "unauthorized access" });
+      }
+      return console.log(decoded);
+      req.user = decoded;
+      next();
+    });
+  }
+};
+
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.vrdje6l.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 const client = new MongoClient(uri, {
@@ -52,7 +70,7 @@ async function run() {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
           sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-          maxAge:0
+          maxAge: 0,
         })
         .send({ success: true });
     });
@@ -85,8 +103,14 @@ async function run() {
     });
 
     //get all jobs posted by a specific user
-    app.get("/jobs/:email", async (req, res) => {
+    app.get("/jobs/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
+      const tokenEMail=req.user.email
+      if(tokenEMail !== email){
+        return res.status(403).send({message:'forbidden access'})
+      }
+      console.log(tokenData)
+      console.log("token", token);
       const query = { "buyer.email": email };
       const result = await jobsCollection.find(query).toArray();
       res.send(result);
@@ -115,6 +139,7 @@ async function run() {
     //get all bids for a user by email from db
     app.get("/myBids/:email", async (req, res) => {
       const email = req.params.email;
+
       const query = { email };
       const result = await bidsCollection.find(query).toArray();
       res.send(result);
