@@ -90,6 +90,22 @@ async function run() {
       res.send(result)
     })
 
+    //get all bids for a user by email from db
+    app.get('/myBids/:email',async(req,res)=>{
+      const email=req.params.email
+      const query={email}      
+      const result=await bidsCollection.find(query).toArray()
+      res.send(result)
+    })
+
+    //get all bid request from db for job owner
+    app.get('/bidRequest/:email',async(req,res)=>{
+      const email=req.params.email
+      const query={'buyer.email' : email}
+      const result=await bidsCollection.find(query).toArray()
+      res.send(result)
+    })
+
 
 
 
