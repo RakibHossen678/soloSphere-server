@@ -27,7 +27,7 @@ const verifyToken = (req, res, next) => {
         console.log(err);
         return res.status(401).send({ message: "unauthorized access" });
       }
-      return console.log(decoded);
+      console.log(decoded);
       req.user = decoded;
       next();
     });
@@ -92,6 +92,19 @@ async function run() {
     //save bid data id in DB
     app.post("/bid", async (req, res) => {
       const bidData = req.body;
+      //check if its a duplicate request
+      const query = {
+        email: bidData.email,
+        job_id: bidData.job_id,
+      };
+      const alreadyApplied = await bidsCollection.findOne(query);
+
+      if (alreadyApplied) {
+        return res
+          .status(400)
+          .send("You have already placed a bid on this job");
+      }
+
       const result = await bidsCollection.insertOne(bidData);
       res.send(result);
     });
@@ -105,12 +118,11 @@ async function run() {
     //get all jobs posted by a specific user
     app.get("/jobs/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
-      const tokenEMail=req.user.email
-      if(tokenEMail !== email){
-        return res.status(403).send({message:'forbidden access'})
+      const tokenEMail = req.user.email;
+      if (tokenEMail !== email) {
+        return res.status(403).send({ message: "forbidden access" });
       }
-      console.log(tokenData)
-      console.log("token", token);
+
       const query = { "buyer.email": email };
       const result = await jobsCollection.find(query).toArray();
       res.send(result);
@@ -139,14 +151,13 @@ async function run() {
     //get all bids for a user by email from db
     app.get("/myBids/:email", async (req, res) => {
       const email = req.params.email;
-
       const query = { email };
       const result = await bidsCollection.find(query).toArray();
       res.send(result);
     });
 
     //get all bid request from db for job owner
-    app.get("/bidRequest/:email", async (req, res) => {
+    app.get("/bidRequest/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
       const query = { "buyer.email": email };
       const result = await bidsCollection.find(query).toArray();
@@ -165,6 +176,24 @@ async function run() {
       const result = await bidsCollection.updateOne(query, updateDoc);
       res.send(result);
     });
+
+    //get all jobs data from bd for pagination
+    app.get('/all-jobs',async(req,res)=>{
+      
+      const size=parseInt(req.query.size) 
+      const page=parseInt(req.query.page)-1
+      console.log(size,page)
+     
+      const result=await jobsCollection.find().skip(size*page).limit(size).toArray()
+      res.send(result)
+    })
+
+    //get all jobs data count from database
+
+    app.get('/jobs-count',async(req,res)=>{
+      const count=await jobsCollection.countDocuments()
+      res.send({count})
+    })
 
     // Send a ping to confirm a successful connection
     console.log(
